@@ -10,17 +10,31 @@ use App\Models\instructor_profile;
 use App\models\course;
 
 use App\Models\order;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable ;
+    use HasFactory, Notifiable , HasApiTokens; 
 
     /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
+    public $incrementing = false;
+    protected $keyType = 'string';
+    
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($model) {
+            if (!$model->id) {
+                $model->id = Str::uuid();
+            }
+        });
+    }
 
     protected $fillable = [
         'name',
