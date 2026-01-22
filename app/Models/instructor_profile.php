@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class instructor_profile extends Model
 {
+    use HasUuids;
+
     public $table = 'instructor_profiles';
     protected $fillable = [
         'user_id',

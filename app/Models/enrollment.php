@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class enrollment extends Model
 {
-    $table='enrollments';
+    use HasUuids;
+
+    protected $table='enrollments';
     protected $fillable = [
         'user_id',
         'course_id',

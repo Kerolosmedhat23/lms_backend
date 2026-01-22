@@ -27,7 +27,7 @@ return new class extends Migration
             $table->enum('status', ['draft', 'published', 'archived'])->default('draft');
             $table->integer('duration')->default(0); // duration in minutes 
             $table->string('language')->default('English'); 
-            $table->enum('level', [1, 2, 3])->default(1); // 1: Beginner, 2: Intermediate, 3: Advanced
+            $table->enum('level', ['beginner', 'intermediate', 'advanced'])->default('beginner');
             $table->softDeletes();
             $table->timestamps();
         });

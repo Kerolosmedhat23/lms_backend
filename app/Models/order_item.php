@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class order_item extends Model
 {
+    use HasUuids;
+
     protected $table='order_items';
     protected $fillable = [
         'order_id',
