@@ -12,7 +12,42 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Global middleware
+        $middleware->use([
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
+
+        // Middleware aliases
+        $middleware->alias([
+            'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
+            'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
+            'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
+            'can' => \Illuminate\Auth\Middleware\Authorize::class,
+            'guest' => \Illuminate\Auth\Middleware\RedirectIfAuthenticated::class,
+            'password.confirm' => \Illuminate\Auth\Middleware\RequirePassword::class,
+            'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
+            'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+            'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        ]);
+
+        // Web middleware group
+        $middleware->group('web', [
+            \Illuminate\Cookie\Middleware\EncryptCookies::class,
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+            \Illuminate\Session\Middleware\StartSession::class,
+            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+            \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        ]);
+
+        // API middleware group with rate limiting
+        $middleware->group('api', [
+            'throttle:api',
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        ]);
+
+        // Enable Sanctum's stateful API for same-domain SPA requests
+        $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
