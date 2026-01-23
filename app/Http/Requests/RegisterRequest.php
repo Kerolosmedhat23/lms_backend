@@ -25,6 +25,7 @@ class RegisterRequest extends FormRequest
             'name'=> 'required|string|max:255',
             'email'=>'required|string|email|max:255|unique:users',
             'password'=>'required|string|min:8|confirmed',
+            'role' => 'nullable|string|in:student,instructor,admin',
         ];
     }
  public function messages(): array
@@ -37,6 +38,7 @@ class RegisterRequest extends FormRequest
             'password.required' => 'Password is required',
             'password.min' => 'Password must be at least 8 characters',
             'password.confirmed' => 'Password confirmation does not match',
+            'role.in' => 'Role must be either student, instructor, or admin',
         ];
     }
 }

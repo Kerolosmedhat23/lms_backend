@@ -13,6 +13,11 @@ class EnrollmentController extends Controller
         if (!auth()->check()) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
+        
+        // Check permission
+        if (!auth()->user()->can('view own enrollments')) {
+            return response()->json(['message' => 'Unauthorized - You do not have permission to view enrollments'], 403);
+        }
 
         $enrollments = enrollment::where('user_id', auth()->user()->id)
             ->with(['course.instructor', 'course.category'])
@@ -35,9 +40,8 @@ class EnrollmentController extends Controller
             return response()->json(['message' => 'Enrollment not found'], 404);
         }
 
-        if ($enrollment->user_id !== auth()->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        // OBAC: Users can view their own enrollments, admins and instructors can view any
+        $this->authorize('view', $enrollment);
 
         return response()->json(['enrollment' => $enrollment], 200);
     }
@@ -47,6 +51,11 @@ class EnrollmentController extends Controller
     {
         if (!auth()->check()) {
             return response()->json(['message' => 'Unauthorized'], 401);
+        }
+        
+        // Check permission
+        if (!auth()->user()->can('check enrollment')) {
+            return response()->json(['message' => 'Unauthorized - You do not have permission to check enrollment'], 403);
         }
 
         $enrollment = enrollment::where('user_id', auth()->user()->id)
@@ -68,9 +77,8 @@ class EnrollmentController extends Controller
             return response()->json(['message' => 'Enrollment not found'], 404);
         }
 
-        if ($enrollment->user_id !== auth()->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        // OBAC: Users can remove their own enrollments, admins can remove any
+        $this->authorize('delete', $enrollment);
 
         $enrollment->delete();
 

@@ -21,7 +21,14 @@ class AuthController extends Controller
             'password'=>Hash::make($data['password']),
         ]);
 
+        // Assign role (default to student if not specified)
+        $role = $data['role'] ?? 'student';
+        $user->assignRole($role);
+
         $token = $user->createToken('react_app')->plainTextToken;
+
+        // Load roles and permissions for response
+        $user->load('roles', 'permissions');
 
         return response()->json(['user'=>$user,'token'=>$token],201);
     }
@@ -37,12 +44,17 @@ class AuthController extends Controller
 
         $token = $user->createToken('react_app')->plainTextToken;
 
+        // Load roles and permissions for response
+        $user->load('roles', 'permissions');
+
         return response()->json(['user'=>$user,'token'=>$token],200);
     }
 
     public function me(Request $request)
     {
-        return response()->json($request->user(),200);
+        $user = $request->user();
+        $user->load('roles', 'permissions');
+        return response()->json($user,200);
     }
 
     public function logout(Request $request)

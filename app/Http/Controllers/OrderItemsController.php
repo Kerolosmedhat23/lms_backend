@@ -16,6 +16,11 @@ class OrderItemsController extends Controller
         if(!auth()->check()){
             return response()->json(['message'=>'Unauthorized'],401);
         }
+        
+        // Check permission
+        if (!$request->user()->can('add order items')) {
+            return response()->json(['message' => 'Unauthorized - You do not have permission to add items to orders'], 403);
+        }
         $Validate = $request->validate(
             [
                 'order_id'=>'required|uuid|exists:orders,id',
@@ -26,9 +31,9 @@ class OrderItemsController extends Controller
         
         // Verify order belongs to authenticated user
         $order = order::find($Validate['order_id']);
-        if ($order->user_id !== auth()->user()->id) {
-            return response()->json(['message'=>'Unauthorized - Order does not belong to you'],403);
-        }
+        
+        // OBAC: Check if user can manage items in this order
+        $this->authorize('manageItems', $order);
         
         // Check if course already in order
         $exists = Order_item::where('order_id', $Validate['order_id'])
@@ -58,15 +63,14 @@ class OrderItemsController extends Controller
         if(!auth()->check()){
             return response()->json(['message'=>'Unauthorized'],401);
         }
+        
         $order = Order::with('orderItems.course.instructor', 'orderItems.course.category')->find($orderId);
         if (!$order) {
             return response()->json(['message'=>'Order not found'],404);
         }
         
-        // Verify order belongs to user
-        if ($order->user_id !== auth()->user()->id) {
-            return response()->json(['message'=>'Unauthorized - Order does not belong to you'],403);
-        }
+        // OBAC: Verify order belongs to user or user is admin
+        $this->authorize('view', $order);
         
         return response()->json(['order' => $order], 200);
     }
@@ -77,15 +81,20 @@ class OrderItemsController extends Controller
             return response()->json(['message'=>'Unauthorized'],401);
         }
         
+        // Check permission
+        if (!auth()->user()->can('remove order items')) {
+            return response()->json(['message' => 'Unauthorized - You do not have permission to remove items from orders'], 403);
+        }
+        
         $orderItem = Order_item::find($orderItemId);
         if (!$orderItem) {
             return response()->json(['message'=>'Order item not found'],404);
         }
         
         $order = order::find($orderItem->order_id);
-        if ($order->user_id !== auth()->user()->id) {
-            return response()->json(['message'=>'Unauthorized'],403);
-        }
+        
+        // OBAC: Check if user owns the order or is admin
+        $this->authorize('manageItems', $order);
         
         // Prevent removing from completed orders
         if ($order->status === 'completed') {

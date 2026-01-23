@@ -14,6 +14,7 @@ class CourseController extends Controller
 {
     public function getCategories()
     {
+        // Anyone can view categories
         $categories = Category::all(['id', 'name', 'slug']);
         return response()->json($categories, 200);
     }
@@ -22,6 +23,13 @@ class CourseController extends Controller
 
     public function store(Request $request)
     {
+        // RBAC + OBAC: Check permission and role
+        if (!$request->user()->can('create courses')) {
+            return response()->json(['message' => 'Unauthorized - You do not have permission to create courses'], 403);
+        }
+
+        $this->authorize('create', course::class);
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -75,6 +83,9 @@ class CourseController extends Controller
             return response()->json(['message' => 'Course not found'], 404);
         }
         
+        // OBAC: Anyone can view a published course
+        $this->authorize('view', $course);
+        
         return response()->json($course, 200);
     }
         public function index()
@@ -91,10 +102,12 @@ class CourseController extends Controller
             return response()->json(['message' => 'Course not found'], 404);
         }
 
-        // Check if user is the instructor of this course
-        if ($course->instructor_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        // RBAC + OBAC: Check permission and object ownership
+        if (!$request->user()->can('update courses')) {
+            return response()->json(['message' => 'Unauthorized - You do not have permission to update courses'], 403);
         }
+
+        $this->authorize('update', $course);
 
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
@@ -114,6 +127,11 @@ class CourseController extends Controller
     //create cource sections and lectures methods here
     public function createSection(Request $request, $courseId)
     {
+        // Check permission
+        if (!$request->user()->can('create sections')) {
+            return response()->json(['message' => 'Unauthorized - You do not have permission to create sections'], 403);
+        }
+
         // Validate input
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -126,10 +144,8 @@ class CourseController extends Controller
             return response()->json(['message' => 'Course not found'], 404);
         }
 
-        // Ensure the authenticated user owns the course
-        if ($course->instructor_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        // OBAC: Ensure the authenticated user owns the course or is admin
+        $this->authorize('manageSection', $course);
 
         $section = Section::create([
             'course_id' => $courseId,
@@ -142,6 +158,11 @@ class CourseController extends Controller
     // add video lecture to section
     public function addLecture(Request $request, $sectionId)
     {
+        // Check permission
+        if (!$request->user()->can('create lectures')) {
+            return response()->json(['message' => 'Unauthorized - You do not have permission to create lectures'], 403);
+        }
+
         // Validate input
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -164,9 +185,9 @@ class CourseController extends Controller
         if (!$course) {
             return response()->json(['message' => 'Course not found'], 404);
         }
-        if ($course->instructor_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        
+        // OBAC: Ensure the authenticated user owns the course or is admin
+        $this->authorize('manageLecture', $course);
 
         // Handle video upload
         $videoUrl = null;
@@ -191,6 +212,11 @@ class CourseController extends Controller
     //store lecture video in storage and return url
     public function uploadLectureVideo(Request $request)
     {
+        // Check permission
+        if (!$request->user()->can('upload lecture videos')) {
+            return response()->json(['message' => 'Unauthorized - You do not have permission to upload lecture videos'], 403);
+        }
+
         $request->validate([
             'video' => 'required|mimes:mp4,mov,avi,wmv|max:20480', // max 20MB
         ]);

@@ -16,6 +16,14 @@ class OrdersController extends Controller
     if(!auth()->check()){
         return response()->json(['message'=>'Unauthorized'],401);
     }
+    
+    // RBAC: Check permission
+    if (!$request->user()->can('create orders')) {
+        return response()->json(['message' => 'Unauthorized - You do not have permission to create orders'], 403);
+    }
+    
+    // OBAC: Check if user can create orders
+    $this->authorize('create', order::class);
     $Validate = $request->validate(
         [
             'total_amount'=>'nullable|numeric',
@@ -35,8 +43,16 @@ class OrdersController extends Controller
    }
           //list user orders
     public function listUserOrders($userId){
-        if(!auth()->check() || auth()->user()->id !== $userId){
+        if(!auth()->check()){
             return response()->json(['message'=>'Unauthorized'],401);
+        }
+        
+        // OBAC: Check if user can view orders list
+        $this->authorize('viewAny', order::class);
+        
+        // Additional check: users can only view their own orders unless admin
+        if (auth()->user()->id !== $userId && !auth()->user()->hasRole('admin')) {
+            return response()->json(['message'=>'Unauthorized - You can only view your own orders'],403);
         }
         $orders= order::where('user_id',$userId)->get();
         
@@ -52,14 +68,14 @@ public function viewOrderDetails($orderId){
     if(!auth()->check()){
         return response()->json(['message'=>'Unauthorized'],401);
     }
+    
     $order= order::with('orderItems')->find($orderId);
     if (!$order) {
         return response()->json(['message'=>'Order not found'],404);
     }
-    //check if the order belongs to the authenticated user
-    if($order->user_id !== auth()->user()->id){
-        return response()->json(['message'=>'Unauthorized'],401);
-    }
+    
+    // OBAC: Check if the order belongs to the authenticated user or user is admin
+    $this->authorize('view', $order);
     return response()->json(['order' => $order], 200);
     // get all order details from the relation betwwen order and order items and courses
 }
@@ -71,14 +87,14 @@ public function viewOrderDetails($orderId){
         if(!auth()->check()){
             return response()->json(['message'=>'Unauthorized'],401);
         }
+        
         $order= order::with('orderItems')->find($orderId);
         if (!$order) {
             return response()->json(['message'=>'Order not found'],404);
         }
-        //check if the order belongs to the authenticated user
-        if($order->user_id !== auth()->user()->id){
-            return response()->json(['message'=>'Unauthorized'],401);
-        }
+        
+        // OBAC: Check if the order belongs to the authenticated user or user is admin
+        $this->authorize('complete', $order);
         
         if ($order->status === 'completed') {
             return response()->json(['message'=>'Order already completed'],400);
@@ -110,14 +126,19 @@ public function viewOrderDetails($orderId){
         if(!auth()->check()){
             return response()->json(['message'=>'Unauthorized'],401);
         }
+        
+        // RBAC: Check permission
+        if (!auth()->user()->can('cancel orders')) {
+            return response()->json(['message' => 'Unauthorized - You do not have permission to cancel orders'], 403);
+        }
+        
         $order= order::find($orderId);
         if (!$order) {
             return response()->json(['message'=>'Order not found'],404);
         }
-        //check if the order belongs to the authenticated user
-        if($order->user_id !== auth()->user()->id){
-            return response()->json(['message'=>'Unauthorized'],401);
-        }
+        
+        // OBAC: Check if the order belongs to the authenticated user or user is admin
+        $this->authorize('cancel', $order);
         $order->status='cancelled';
         $order->save();
         return response()->json(['message'=>'Order cancelled','order'=>$order],200);
